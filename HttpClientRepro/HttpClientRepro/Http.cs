@@ -13,17 +13,13 @@ namespace HttpClientRepro
 	{
 		static Http http = new Http ();
 
-
 		readonly HttpClient _httpClient = new HttpClient ();
 
 		const string BASE_URL = "http://httpbin.org/anything/";
-		const string CONTEXT = "";
-
 		const string RANKINGUPLOAD_URL = "ranking/upload";
-
-		const int TIMEOUT = 200;
 		const bool FAST = true;
 
+		private Http () { }
 
 		public static Http GetInstance ()
 		{
@@ -41,46 +37,16 @@ namespace HttpClientRepro
 
 			_httpClient.DefaultRequestHeaders.Authorization = authenticationHeaderValue ("bearer", "myToken");
 
-
-
 			/* This is the row that thrown exception */
-			HttpResponseMessage httpResponseMessage = await _httpClient.PostAsync (createUrl (RANKINGUPLOAD_URL, false), multipartFormDataContent);
+			HttpResponseMessage httpResponseMessage = await _httpClient.PostAsync (createUrl (RANKINGUPLOAD_URL), multipartFormDataContent);
 			return await readStreamAndDeserialize<RankingUploadResponse> (httpResponseMessage);
 		}
 
 		MultipartFormDataContent prepareForm (MultipartFormDataContent multipartFormDataContent, string path)
 		{
-			byte [] imagebytearraystring = ImageFileToByteArray (path);
-			string name = Path.GetFileName (path);
-			string fileName = name;
-			multipartFormDataContent.Add (new ByteArrayContent (imagebytearraystring, 0, imagebytearraystring.Length), "Files", fileName);
-
+			multipartFormDataContent.Add (new StreamContent (File.OpenRead (path)), "Files", Path.GetFileName (path));
+			
 			return multipartFormDataContent;
-
-		}
-
-		private byte [] ImageFileToByteArray (string fullFilePath)
-		{
-			FileStream fs = File.OpenRead (fullFilePath);
-			byte [] bytes = new byte [fs.Length];
-			fs.Read (bytes, 0, Convert.ToInt32 (fs.Length));
-			fs.Close ();
-			return bytes;
-		}
-
-		async Task<String> readStream (HttpResponseMessage response)
-		{
-			if (response.IsSuccessStatusCode) {
-				using (var stream = await response.Content.ReadAsStreamAsync ())
-				using (var reader = new StreamReader (stream)) {
-					string text = reader.ReadToEnd ();
-					Console.WriteLine ("RECEIVED: " + text);
-					return text;
-
-				}
-			}
-
-			return null;
 		}
 
 		AuthenticationHeaderValue authenticationHeaderValue (String type, String token)
@@ -111,21 +77,10 @@ namespace HttpClientRepro
 			return new JsonSerializer ().Deserialize<T> (json);
 		}
 
-		Uri createUri (String url, bool addContext)
+		string createUrl (string url)
 		{
-			return new Uri (createUrl (url, addContext));
+			return BASE_URL + url;
 		}
-
-		string createUrl (String url, bool addContext)
-		{
-			return String.Format ("{0}{1}{2}", BASE_URL, addContext ? CONTEXT : "", url);
-		}
-
-		StringContent createStringContent (object oggetto)
-		{
-			return new StringContent (JsonConvert.SerializeObject (oggetto), Encoding.UTF8, "application/json");
-		}
-
 	}
 
 	public class RankingUploadResponse

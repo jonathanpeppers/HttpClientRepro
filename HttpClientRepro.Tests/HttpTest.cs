@@ -12,10 +12,10 @@ namespace HttpClientRepro.Tests
 		{
 			var path = Path.GetTempFileName ();
 			try {
-				var http = new Http ();
+				var http = Http.GetInstance ();
 				using (var stream = File.Create (path)) {
 					var bytes = new byte [1024 * 1024];
-					for (int i = 0; i < 20; i++) {
+					for (int i = 0; i < 32; i++) {
 						stream.Write (bytes, 0, bytes.Length);
 					}
 				}
